@@ -1,7 +1,6 @@
 """ The threading function to help verification parallel to an action"""
 import time
 import threading
-from library import framework_constants
 
 # pylint: disable=too-many-instance-attributes
 
@@ -10,33 +9,31 @@ class ParallelOperator(threading.Thread):
     """
     Parallel operation creator
 
-    The original use case for this class was to use a monitor state function while a process is
-    carried out on the dut. For example, the task to be carried out is:
-    connect_master_to_source_device(test_manager) and the parallel monitoring operation looks like:
-    monitor_led_state(dut=dut_right, wait_time=120, wait_step=1) then the usage will look like this:
+    The use case for this class is to use a monitor state function while a process is
+    carried out. For example, the task to be carried out is:
+    task_to_carryout(arg1) and the parallel monitoring operation looks like:
+    monitor_task_state(arg1="something1", arg2="something2") then the usage will look like this:
 
-    with ParallelOperator(monitor_led_state, dut=dut_right, wait_time=120, wait_step=1) \
-        as led_monitor:
-        connect_master_to_source_device(test_manager)
-    led_states = led_monitor.output
+    with ParallelOperator(monitor_task_state, arg1="something1", arg2="something2") as task_monitor:
+        task_to_carryout(arg1)
+
+    task_states = task_monitor.output
 
     It also has a time measurement functionality so the time taken by the thread to complete the
     given function can be counted. It should be noted that the MONITOR FUNCTION SHOULD BE ACTIVE
     FOR MORE TIME THAN THE FUNCTION UNDER OBSERVATION. An example of that would look like this:
 
-    with ParallelOperator(verify_sink_state,
-                      duts=tarts.right, logger=logger, expected_sink_states=to_sink_state) \
-        as thread_right:
-    with ParallelOperator(verify_sink_state,
-                          duts=tarts.left, logger=logger, expected_sink_states=to_sink_state) \
-            as thread_left:
-        pass
+    with ParallelOperator(monitor_task_state1, arg1="something1", arg2="something2") \
+            as thread1:
+        with ParallelOperator(monitor_task_state2, arg1="something1", arg2="something2") \
+                as thread2:
+            pass
 
-    total_master_time = thread_right.thread_time()
-    total_puppet_time = thread_left.thread_time()
+    total_time1 = thread1.thread_time()
+    total_time2 = thread2.thread_time()
 
     In case there are more threads and multiple nested "with" statements is not allowed by pylint,
-    the the following will be the usage
+    the following syntax will be the usage
 
     threads = [ParallelOperator(func, **kwargs) for kwargs in kwargs_list]
     for thread in threads:
@@ -49,7 +46,6 @@ class ParallelOperator(threading.Thread):
     """
     def __init__(self, fp_operation, delay=0, add_self_as=None, **kwargs):
         """ initializes the function to be run in a thread"""
-        framework_constants.LOOP_BREAK = False
         self.fp_operation = fp_operation
         self.kwargs = kwargs
         self.start_delay = delay
