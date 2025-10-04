@@ -13,8 +13,7 @@ with ParallelOperator(monitor_task_state, arg1="something1", arg2="something2") 
 task_states = task_monitor.output
 ```
 It also has a time measurement functionality so the time taken by the thread to complete the
-given function can be counted. It should be noted that the MONITOR FUNCTION SHOULD BE ACTIVE
-FOR MORE TIME THAN THE FUNCTION UNDER OBSERVATION. An example of that would look like this:
+given function can be counted. It should be noted that the **Monitor function should be active for more time than the function under observation**. An example of that would look like this:
 
 ```python
 with ParallelOperator(monitor_task_state1, arg1="something1", arg2="something2") \
