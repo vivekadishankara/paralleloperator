@@ -2,8 +2,8 @@
 
 The use case for this class is to use a monitor state function while a process is
 carried out. For example, the task to be carried out is:
-task_to_carryout(arg1) and the parallel monitoring operation looks like:
-monitor_task_state(arg1="something1", arg2="something2") then the usage will look like this:
+`task_to_carryout(arg1)` and the parallel monitoring operation looks like:
+`monitor_task_state(arg1="something1", arg2="something2")` then the usage will look like this:
 ```python
 from parallel_operator import ParallelOperator
 
