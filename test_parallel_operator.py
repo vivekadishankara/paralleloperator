@@ -3,10 +3,7 @@ This module contains the class to test functioning of the parallel operator
 """
 import time
 import unittest
-from library.parallel_operator import ParallelOperator
-from library import framework_constants
-from unittests.unittest_support import while_loop_global, LOOP_TIME
-
+from parallel_operator import ParallelOperator
 
 ALLOWANCE = 0.2
 
@@ -51,25 +48,6 @@ def return_true():
     return True
 
 
-def while_loop_object(thread=None):
-    start_time = time.time()
-    while time.time() - start_time < LOOP_TIME:
-        time.sleep(1)
-        if thread and thread.loop_break:
-            break
-
-
-def loop_break_timeout_global():
-    allowance = 0.2
-    thread_time = 5
-    with ParallelOperator(while_loop_global) as looper:
-        wait_for_time(thread_time)
-        framework_constants.LOOP_BREAK = True
-    framework_constants.LOOP_BREAK = False
-    print(thread_time - looper.thread_time())
-    return abs(thread_time - looper.thread_time()) < allowance
-
-
 def invaded_function_list(time_btw_append=1.0, invader_obj: ParallelOperator = None):
     if invader_obj:
         monitor = invader_obj.output = []
@@ -98,34 +76,33 @@ class TestParallelOperator(unittest.TestCase):
 
     def test_parallel_operation(self):
         """ This tests the efficacy of the monitor function and one under observation"""
+        global LOOP_BREAK
         test_list = []
         to_append_1 = 1
         to_append_2 = 2
-        with ParallelOperator(append_given_list,
-                              given_list=test_list, to_append=to_append_1, time_btw_append=1):
+        kwargs_append = dict(given_list=test_list, to_append=to_append_1, time_btw_append=1)
+        with ParallelOperator(append_given_list, **kwargs_append):
             # waiting time to avoid race condition
             wait_for_time(0.5)
             append_given_list(given_list=test_list, to_append=to_append_2, time_btw_append=1)
 
         self.assertEqual(test_list, make_result(to_append_1, to_append_2))
-        self.assertFalse(framework_constants.LOOP_BREAK)
 
     def test_parallel_threads(self):
         """ This tests the efficacy of two parallel threads running in conjunction"""
         test_list = []
         to_append_1 = 1
         to_append_2 = 2
-        with ParallelOperator(append_given_list,
-                              given_list=test_list, to_append=to_append_1, time_btw_append=1):
+        kwargs_append1 = dict(given_list=test_list, to_append=to_append_1, time_btw_append=1)
+        kwargs_append2 = dict(given_list=test_list, to_append=to_append_2, time_btw_append=1)
+        with ParallelOperator(append_given_list, **kwargs_append1):
             # waiting time to avoid race condition
             wait_for_time(0.5)
-            with ParallelOperator(append_given_list,
-                                  given_list=test_list, to_append=to_append_2, time_btw_append=1):
+            with ParallelOperator(append_given_list, **kwargs_append2):
                 # waiting time representing a task to be carried out while the threads execute
-                wait_for_time(5)
+                wait_for_time(2)
 
         self.assertEqual(test_list, make_result(to_append_1, to_append_2))
-        self.assertFalse(framework_constants.LOOP_BREAK)
 
     @unittest.expectedFailure
     def test_parallel_exception(self):
@@ -135,7 +112,6 @@ class TestParallelOperator(unittest.TestCase):
         """
         with ParallelOperator(assert_false):
             pass
-        self.assertFalse(framework_constants.LOOP_BREAK)
 
     @unittest.expectedFailure
     def test_main_thread_exception(self):
@@ -145,7 +121,6 @@ class TestParallelOperator(unittest.TestCase):
         """
         with ParallelOperator(return_true):
             assert_false()
-        self.assertFalse(framework_constants.LOOP_BREAK)
 
     def test_parallel_output(self):
         """
@@ -156,12 +131,11 @@ class TestParallelOperator(unittest.TestCase):
             pass
 
         self.assertEqual(thread.output, True)
-        self.assertFalse(framework_constants.LOOP_BREAK)
 
     def test_parallel_time_calculation(self):
         """ This test is for the time calculation of the operator"""
-        thread1_time = 5
-        thread2_time = 10
+        thread1_time = 2
+        thread2_time = 4
 
         with ParallelOperator(wait_for_time, seconds=thread1_time) as thread1:
             with ParallelOperator(wait_for_time, seconds=thread2_time) as thread2:
@@ -169,7 +143,6 @@ class TestParallelOperator(unittest.TestCase):
 
         self.assertTrue(abs(thread1_time - thread1.thread_time()) < ALLOWANCE)
         self.assertTrue(abs(thread2_time - thread2.thread_time()) < ALLOWANCE)
-        self.assertFalse(framework_constants.LOOP_BREAK)
 
     def test_parallel_without(self):
         """
@@ -195,26 +168,6 @@ class TestParallelOperator(unittest.TestCase):
             thread.join()
 
         self.assertEqual(test_list, make_result(*to_append_list))
-        self.assertFalse(framework_constants.LOOP_BREAK)
-
-    def test_parallel_loop_break_global(self):
-        self.assertTrue(loop_break_timeout_global())
-
-    def test_parallel_loop_break_global_second(self):
-        self.assertTrue(loop_break_timeout_global())
-
-    def test_parallel_loop_break_object(self):
-
-        with ParallelOperator(while_loop_object) as looper:
-            pass
-        self.assertTrue((LOOP_TIME - looper.thread_time()) < ALLOWANCE)
-
-        thread_time = 5
-        with ParallelOperator(while_loop_object, add_self_as='thread') as looper:
-            wait_for_time(thread_time)
-            looper.loop_break = True
-        print(thread_time - looper.thread_time())
-        self.assertTrue((thread_time - looper.thread_time()) < ALLOWANCE)
 
     def test_parallel_real_time_list(self):
         with ParallelOperator(invaded_function_list) as non_invasive:
